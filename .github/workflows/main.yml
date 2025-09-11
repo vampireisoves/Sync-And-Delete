@@ -1,0 +1,52 @@
+name: Sync _worker.js and Release Version from Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 每小时自动触发
+  workflow_dispatch: # 可手动触发
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout self
+        uses: actions/checkout@v4
+
+      - name: Get latest release info
+        id: get_release
+        run: |
+          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
+          latest_tag=$(gh release list --repo $upstream_repo --limit 1 --json tagName | jq -r '.[0].tagName')
+          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download worker.zip from latest release
+        run: |
+          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
+          asset_url=$(gh release view $latest_tag --repo $upstream_repo --json assets | jq -r '.assets[] | select(.name=="worker.zip") | .url')
+          curl -L -o worker.zip -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" $asset_url
+
+      - name: Extract _worker.js
+        run: |
+          unzip -o worker.zip _worker.js
+
+      - name: Replace _worker.js in repo
+        run: |
+          cp -f _worker.js ./_worker.js
+
+      - name: Update README.md version
+        run: |
+          # 替换 README.md 内 V 1.* 为 V 1.${{ env.latest_tag }}
+          sed -i "s/V 1\.[0-9A-Za-z\.\-\_]*/V 1.${{ env.latest_tag }}/g" README.md
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add _worker.js README.md
+          git commit -m "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
