@@ -1,4 +1,4 @@
-name: Sync _worker.js and Release Version from Upstream
+name: Sync-Data
 
 on:
   schedule:
