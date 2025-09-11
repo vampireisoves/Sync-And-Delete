@@ -22,13 +22,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug release assets (optional)
-        run: |
-          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
-          gh release view $latest_tag --repo $upstream_repo --json assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Download worker.zip from latest release
         run: |
           upstream_repo="bia-pain-bache/BPB-Worker-Panel"
@@ -45,7 +38,6 @@ jobs:
       - name: Extract _worker.js (overwrites repo file)
         run: |
           unzip -o worker.zip _worker.js
-          # 检查文件是否成功解压
           if [ ! -f _worker.js ]; then
             echo "_worker.js not found after unzip"
             exit 1
@@ -53,15 +45,24 @@ jobs:
 
       - name: Update README.md version
         run: |
-          # 替换 README.md 内 V 1.* 为 V 1.<版本号>
           sed -i "s/V 1\.[0-9A-Za-z\.\-\_]*/V 1.${{ env.latest_tag }}/g" README.md
 
-      - name: Commit and push changes
+      - name: Create and push branch
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
+          branch="sync-workerjs-${{ env.latest_tag }}"
+          git checkout -b "$branch"
           git add _worker.js README.md
           git commit -m "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
-          git push origin HEAD:main
+          git push origin "$branch"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync-workerjs-${{ env.latest_tag }}
+          title: "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
+          body: "This PR automatically syncs _worker.js and updates README.md version."
