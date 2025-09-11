@@ -1,4 +1,4 @@
-name: Sync _worker.js From BPB-Worker-Panel
+name: Sync Data
 
 on:
   schedule:
