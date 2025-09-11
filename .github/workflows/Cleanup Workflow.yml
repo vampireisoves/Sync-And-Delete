@@ -2,7 +2,7 @@ name: Cleanup Workflow
 
 on:
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '0 12 * * *' # 每天正午12点（UTC）自动运行
   workflow_dispatch:
 
 jobs:
@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install GitHub CLI and jq
-        run: sudo apt-get install gh jq -y
+        run: sudo apt-get update && sudo apt-get install gh jq -y
 
-      - name: Delete old workflow runs
+      - name: Delete old workflow runs for all workflows
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
