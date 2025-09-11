@@ -1,68 +1,51 @@
-name: Sync-Data
+name: Sync _worker.js From BPB-Worker-Panel
 
 on:
   schedule:
-    - cron: '0 * * * *' # 每小时自动触发
-  workflow_dispatch:
+    - cron: '0 * * * *' # 每小时运行一次
+  workflow_dispatch: # 支持手动触发
 
 jobs:
-  sync-upstream:
+  sync-worker:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout self
-        uses: actions/checkout@v4
 
-      - name: Get latest release info
-        id: get_release
-        run: |
-          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
-          latest_tag=$(gh release list --repo $upstream_repo --limit 1 --json tagName | jq -r '.[0].tagName')
-          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-        env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+    - name: Checkout your repo
+      uses: actions/checkout@v4
 
-      - name: Download worker.zip from latest release
-        run: |
-          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
-          asset_url=$(gh release view $latest_tag --repo $upstream_repo --json assets | jq -r '.assets[] | select(.name=="worker.zip") | .url')
-          echo "Asset url: $asset_url"
-          if [ -z "$asset_url" ]; then
-            echo "worker.zip asset not found in latest release $latest_tag"
-            exit 1
-          fi
-          curl -L -o worker.zip -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" $asset_url
-        env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+    - name: Get latest release info from BPB-Worker-Panel
+      id: get_release
+      run: |
+        api_url="https://api.github.com/repos/bia-pain-bache/BPB-Worker-Panel/releases/latest"
+        release_info=$(curl -s $api_url)
+        tag_name=$(echo "$release_info" | jq -r .tag_name)
+        zip_url=$(echo "$release_info" | jq -r '.assets[] | select(.name=="worker.zip") | .browser_download_url')
+        echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+        echo "zip_url=$zip_url" >> $GITHUB_OUTPUT
 
-      - name: Extract _worker.js (overwrites repo file)
-        run: |
-          unzip -o worker.zip _worker.js
-          if [ ! -f _worker.js ]; then
-            echo "_worker.js not found after unzip"
-            exit 1
-          fi
+    - name: Download worker.zip
+      run: |
+        curl -L "${{ steps.get_release.outputs.zip_url }}" -o worker.zip
 
-      - name: Update README.md version
-        run: |
-          sed -i "s/V 1\.[0-9A-Za-z\.\-\_]*/V 1.${{ env.latest_tag }}/g" README.md
+    - name: Unzip _worker.js
+      run: |
+        unzip -o worker.zip _worker.js
 
-      - name: Create and push branch
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-          branch="sync-workerjs-${{ env.latest_tag }}"
-          git checkout -b "$branch"
-          git add _worker.js README.md
-          git commit -m "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
-          git push https://x-access-token:${{ secrets.MY_GITHUB_PAT }}@github.com/vampireisoves/mytestblog.git "$branch"
-        env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+    - name: Replace _worker.js in repo
+      run: |
+        mv -f _worker.js ./_worker.js
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.MY_GITHUB_PAT }}
-          branch: sync-workerjs-${{ env.latest_tag }}
-          title: "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
-          body: "This PR automatically syncs _worker.js and updates README.md version."
+    - name: Update README.md version
+      run: |
+        tag="${{ steps.get_release.outputs.tag_name }}"
+        sed -i "s/V 1\..*/V 1.${tag}/g" README.md
+
+    - name: Commit & Push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add _worker.js README.md
+        git commit -m "Sync _worker.js & README.md version to ${{ steps.get_release.outputs.tag_name }}" || echo "Nothing to commit"
+        git push origin main
