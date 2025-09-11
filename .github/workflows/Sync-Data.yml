@@ -22,11 +22,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug release assets (optional)
+        run: |
+          upstream_repo="bia-pain-bache/BPB-Worker-Panel"
+          gh release view $latest_tag --repo $upstream_repo --json assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download worker.zip from latest release
         run: |
           upstream_repo="bia-pain-bache/BPB-Worker-Panel"
           asset_url=$(gh release view $latest_tag --repo $upstream_repo --json assets | jq -r '.assets[] | select(.name=="worker.zip") | .url')
+          echo "Asset url: $asset_url"
+          if [ -z "$asset_url" ]; then
+            echo "worker.zip asset not found in latest release $latest_tag"
+            exit 1
+          fi
           curl -L -o worker.zip -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" $asset_url
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract _worker.js
         run: |
@@ -38,7 +52,8 @@ jobs:
 
       - name: Update README.md version
         run: |
-          # 替换 README.md 内 V 1.* 为 V 1.${{ env.latest_tag }}
+          # 替换 README.md 内 V 1.* 为 V 1.<版本号>，例如 V 1.3.4.9
+          # 支持 V 1.任何内容的自动替换
           sed -i "s/V 1\.[0-9A-Za-z\.\-\_]*/V 1.${{ env.latest_tag }}/g" README.md
 
       - name: Commit and push changes
