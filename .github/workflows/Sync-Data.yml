@@ -2,7 +2,7 @@ name: Sync _worker.js From BPB-Worker-Panel
 
 on:
   schedule:
-    - cron: '0 * * * *' # 每小时运行一次
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -37,10 +37,11 @@ jobs:
 
     - name: Commit & Push changes
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.MY_BLOG_PAT }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git add _worker.js README.md
         git commit -m "Sync _worker.js & README.md version to ${{ steps.get_release.outputs.tag_name }}" || echo "Nothing to commit"
+        git remote set-url origin https://vampireisoves:${GITHUB_TOKEN}@github.com/vampireisoves/mytestblog.git
         git push origin main
