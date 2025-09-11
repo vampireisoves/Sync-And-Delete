@@ -9,8 +9,10 @@ jobs:
   sync-worker:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout your repo
+    - name: Checkout your repo with PAT
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.MY_BLOG_PAT }}
 
     - name: Get latest release info from BPB-Worker-Panel
       id: get_release
@@ -36,12 +38,9 @@ jobs:
         sed -i "s/V 1\..*/V 1.${tag}/g" README.md
 
     - name: Commit & Push changes
-      env:
-        MY_BLOG_PAT: ${{ secrets.MY_BLOG_PAT }}
       run: |
         git config user.name "vampireisoves"
-        git config user.email "vampireisoves@users.noreply.github.com"
+        git config user.email "893751627@qq.com"
         git add _worker.js README.md
         git commit -m "Sync _worker.js & README.md version to ${{ steps.get_release.outputs.tag_name }}" || echo "Nothing to commit"
-        git remote set-url origin https://vampireisoves:${MY_BLOG_PAT}@github.com/vampireisoves/mytestblog.git
         git push origin main
