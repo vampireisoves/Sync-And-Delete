@@ -3,7 +3,7 @@ name: Sync _worker.js and Release Version from Upstream
 on:
   schedule:
     - cron: '0 * * * *' # 每小时自动触发
-  workflow_dispatch: # 可手动触发
+  workflow_dispatch:
 
 jobs:
   sync-upstream:
@@ -20,7 +20,7 @@ jobs:
           latest_tag=$(gh release list --repo $upstream_repo --limit 1 --json tagName | jq -r '.[0].tagName')
           echo "latest_tag=$latest_tag" >> $GITHUB_ENV
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
 
       - name: Download worker.zip from latest release
         run: |
@@ -31,9 +31,9 @@ jobs:
             echo "worker.zip asset not found in latest release $latest_tag"
             exit 1
           fi
-          curl -L -o worker.zip -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" $asset_url
+          curl -L -o worker.zip -H "Authorization: token ${{ secrets.MY_GITHUB_PAT }}" $asset_url
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
 
       - name: Extract _worker.js (overwrites repo file)
         run: |
@@ -55,14 +55,14 @@ jobs:
           git checkout -b "$branch"
           git add _worker.js README.md
           git commit -m "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
-          git push origin "$branch"
+          git push https://x-access-token:${{ secrets.MY_GITHUB_PAT }}@github.com/vampireisoves/mytestblog.git "$branch"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MY_GITHUB_PAT }}
           branch: sync-workerjs-${{ env.latest_tag }}
           title: "Sync _worker.js and update version to ${{ env.latest_tag }} from upstream release"
           body: "This PR automatically syncs _worker.js and updates README.md version."
