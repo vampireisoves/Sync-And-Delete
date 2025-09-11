@@ -3,13 +3,12 @@ name: Sync _worker.js From BPB-Worker-Panel
 on:
   schedule:
     - cron: '0 * * * *' # 每小时运行一次
-  workflow_dispatch: # 支持手动触发
+  workflow_dispatch:
 
 jobs:
   sync-worker:
     runs-on: ubuntu-latest
     steps:
-
     - name: Checkout your repo
       uses: actions/checkout@v4
 
@@ -27,13 +26,9 @@ jobs:
       run: |
         curl -L "${{ steps.get_release.outputs.zip_url }}" -o worker.zip
 
-    - name: Unzip _worker.js
+    - name: Unzip _worker.js (overwrite in repo root)
       run: |
         unzip -o worker.zip _worker.js
-
-    - name: Replace _worker.js in repo
-      run: |
-        mv -f _worker.js ./_worker.js
 
     - name: Update README.md version
       run: |
