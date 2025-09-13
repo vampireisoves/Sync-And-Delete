@@ -6,21 +6,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  del_runs:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
-    steps:
-      - name: Delete workflow runs for remote repo
-        uses: Mattraks/delete-workflow-runs@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: 'vampireisoves/mytestblog'
-          retain_days: 1
-          keep_minimum_runs: 3
-
-jobs:
   sync-worker:
     runs-on: ubuntu-latest
     steps:
@@ -59,3 +44,16 @@ jobs:
         git add _worker.js README.md
         git commit -m "Sync _worker.js & README.md version to ${{ steps.get_release.outputs.tag_name }}" || echo "Nothing to commit"
         git push origin main
+  del_runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete workflow runs for remote repo
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: 'vampireisoves/mytestblog'
+          retain_days: 1
+          keep_minimum_runs: 3
