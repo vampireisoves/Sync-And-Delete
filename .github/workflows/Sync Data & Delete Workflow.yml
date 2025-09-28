@@ -34,8 +34,8 @@ jobs:
 
     - name: Update README.md version
       run: |
-        tag="${{ steps.get_release.outputs.tag_name }}"
-        sed -i "s/V 1\..*/V 1.${tag}/g" README.md
+        random_version=$(date +%s%N | cut -b10-19)
+        sed -i "s/This is a testing blog program.*/This is a testing blog program:${random_version}/g" README.md
 
     - name: Commit & Push changes
       run: |
