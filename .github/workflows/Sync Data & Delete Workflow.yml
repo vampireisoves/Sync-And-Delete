@@ -45,6 +45,7 @@ jobs:
         git commit -m "Sync _worker.js & README.md version to ${{ steps.get_release.outputs.tag_name }}" || echo "Nothing to commit"
         git push origin main
   del_runs:
+    needs: sync-worker
     runs-on: ubuntu-latest
     permissions:
       actions: write
